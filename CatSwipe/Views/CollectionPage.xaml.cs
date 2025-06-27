@@ -75,8 +75,10 @@ public partial class CollectionPage : ContentPage
 
     private async Task ShareCatAsync(Cat cat)
     {
-        // Create a temporary file to download the image
-        var tempPath = Path.Combine(FileSystem.CacheDirectory, $"cat_{cat.Id}.jpg");
+        // Create a temporary file in the sharing-root directory for Android FileProvider
+        var sharingDir = Path.Combine(FileSystem.CacheDirectory, "sharing-root");
+        Directory.CreateDirectory(sharingDir);
+        var tempPath = Path.Combine(sharingDir, $"cat_{cat.Id}.jpg");
 
         try
         {
