@@ -21,6 +21,17 @@ public partial class CollectionPage : ContentPage
         }
     }
 
+    private bool _isSharing = false;
+    public bool IsSharing
+    {
+        get => _isSharing;
+        set
+        {
+            _isSharing = value;
+            OnPropertyChanged();
+        }
+    }
+
     public CollectionPage(ICatService catService, HttpClient httpClient)
     {
         _catService = catService;
@@ -69,6 +80,9 @@ public partial class CollectionPage : ContentPage
 
         try
         {
+            // Show loading indicator
+            IsSharing = true;
+
             // Download the cat image
             using var response = await _httpClient.GetAsync(cat.ImageUrl);
             response.EnsureSuccessStatusCode();
@@ -86,6 +100,9 @@ public partial class CollectionPage : ContentPage
         }
         finally
         {
+            // Hide loading indicator
+            IsSharing = false;
+
             // Clean up temporary file
             try
             {
