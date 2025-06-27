@@ -137,8 +137,8 @@ jobs:
     - name: Boot Android emulator
       run: |
         # Use dotnet android tool to set up emulator
-        dotnet android sdk install --package 'system-images;android-33;default;x86_64'
-        dotnet android avd create --name UITestEmu --sdk 'system-images;android-33;default;x86_64' --force
+        dotnet android sdk install --package 'system-images;android-35;google_apis;x86_64'
+        dotnet android avd create --name UITestEmu --sdk 'system-images;android-35;google_apis;x86_64' --force
         dotnet android avd start --name UITestEmu --wait-boot --gpu guest --no-snapshot --no-audio --no-boot-anim --no-window
         dotnet android device list
 
