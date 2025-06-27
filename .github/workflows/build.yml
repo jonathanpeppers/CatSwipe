@@ -110,6 +110,9 @@ jobs:
   ui-tests:
     runs-on: ubuntu-latest
     needs: [build]
+    env:
+      TEST_EMULATOR_IMAGE: system-images;android-34;google_apis;x86_64
+      TEST_EMULATOR_NAME: UITestsEmulator
     
     steps:
     - uses: actions/checkout@v4
@@ -137,9 +140,9 @@ jobs:
     - name: Boot Android emulator
       run: |
         # Use dotnet android tool to set up emulator
-        dotnet android sdk install --package 'system-images;android-35;google_apis;x86_64'
-        dotnet android avd create --name UITestEmu --sdk 'system-images;android-35;google_apis;x86_64' --force
-        dotnet android avd start --name UITestEmu --wait-boot --gpu guest --no-snapshot --no-audio --no-boot-anim --no-window
+        dotnet android sdk install --package '${{ env.TEST_EMULATOR_IMAGE }}'
+        dotnet android avd create --name '${{ env.TEST_EMULATOR_NAME }}' --sdk '${{ env.TEST_EMULATOR_IMAGE }}' --force
+        dotnet android avd start --name '${{ env.TEST_EMULATOR_NAME }}' --wait-boot --gpu swiftshader_indirect --no-snapshot --no-audio --no-boot-anim --no-window
         dotnet android device list
 
     - name: Install App
