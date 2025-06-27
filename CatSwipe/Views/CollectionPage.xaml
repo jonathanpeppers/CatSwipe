@@ -43,6 +43,9 @@
                                 StrokeShape="RoundRectangle 15"
                                 Padding="5"
                                 HeightRequest="200">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCatTapped" />
+                            </Border.GestureRecognizers>
                             <Border.Shadow>
                                 <Shadow Brush="Black" Opacity="0.3" Radius="10" />
                             </Border.Shadow>

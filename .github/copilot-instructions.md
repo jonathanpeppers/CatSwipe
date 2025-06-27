@@ -2,6 +2,10 @@
 
 This document provides setup instructions for developing the **CatSwipe** .NET MAUI application with GitHub Copilot.
 
+## Development Guidelines
+
+**Always search Microsoft documentation (MS Learn) when working with .NET MAUI platform features, APIs, or integrations.** Use the microsoft-docs-mcp-microsoft_docs_search tool to find the most current and authoritative information about .NET MAUI capabilities, best practices, and implementation patterns before making changes.
+
 ## Project Overview
 
 CatSwipe is a .NET MAUI cross-platform mobile application that allows users to swipe through cat photos in a Tinder-like interface. The app is built with:
