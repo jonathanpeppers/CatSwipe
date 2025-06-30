@@ -139,7 +139,6 @@ jobs:
 
     - name: Boot Android emulator
       run: >
-        # Use dotnet android tool to set up emulator
         dotnet android sdk install --package platform-tools &&
         dotnet android sdk install --package emulator &&
         dotnet android sdk install --package '${{ env.TEST_EMULATOR_IMAGE }}' &&
