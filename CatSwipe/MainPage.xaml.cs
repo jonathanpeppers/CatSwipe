@@ -91,6 +91,14 @@ public partial class MainPage : ContentPage
         panGesture.PanUpdated += (s, e) => OnCardPanUpdated(s, e, cat);
         contentView.GestureRecognizers.Add(panGesture);
 
+        // Add double-tap gesture for super-like
+        var doubleTapGesture = new TapGestureRecognizer
+        {
+            NumberOfTapsRequired = 2
+        };
+        doubleTapGesture.Tapped += (s, e) => OnCardDoubleTapped(s, e, cat);
+        contentView.GestureRecognizers.Add(doubleTapGesture);
+
         AbsoluteLayout.SetLayoutBounds(contentView, new Rect(0.5, 0.5, 0.8, 0.7));
         AbsoluteLayout.SetLayoutFlags(contentView, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.All);
 
@@ -268,5 +276,48 @@ public partial class MainPage : ContentPage
                 _lastTotalY = 0;
                 break;
         }
+    }
+
+    private async void OnCardDoubleTapped(object? sender, EventArgs e, Cat cat)
+    {
+        // Process super-like
+        await _catService.SuperLikeCatAsync(cat);
+
+        // Show heart effect
+        await ShowHeartEffectAsync();
+
+        // Move to next cat after a brief delay
+        await Task.Delay(500);
+        NextCat();
+    }
+
+    private async Task ShowHeartEffectAsync()
+    {
+        HeartEffectOverlay.IsVisible = true;
+
+        // Start animation sequence
+        var label = HeartEffectLabel;
+
+        // Reset initial state
+        label.Opacity = 0;
+        label.Scale = 0.5;
+
+        // Animate heart appearing with scale and fade in
+        var scaleUp = label.ScaleTo(1.2, 300, Easing.SpringOut);
+        var fadeIn = label.FadeTo(1, 300, Easing.CubicOut);
+
+        await Task.WhenAll(scaleUp, fadeIn);
+
+        // Brief pause at full visibility
+        await Task.Delay(200);
+
+        // Animate heart disappearing with scale and fade out
+        var scaleDown = label.ScaleTo(0.8, 400, Easing.CubicIn);
+        var fadeOut = label.FadeTo(0, 400, Easing.CubicIn);
+
+        await Task.WhenAll(scaleDown, fadeOut);
+
+        // Hide overlay
+        HeartEffectOverlay.IsVisible = false;
     }
 }

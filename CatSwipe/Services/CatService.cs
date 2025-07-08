@@ -12,6 +12,7 @@ public interface ICatService
     Task<List<Cat>> GetLikedCatsAsync();
     Task LikeCatAsync(Cat cat);
     Task DislikeCatAsync(Cat cat);
+    Task SuperLikeCatAsync(Cat cat);
 }
 
 public class CatService : ICatService
@@ -136,6 +137,18 @@ public class CatService : ICatService
         cat.LikedAt = null;
 
         _likedCats.RemoveWhere(c => c.Id == cat.Id);
+
+        await SaveLikedCatsAsync();
+    }
+
+    public async Task SuperLikeCatAsync(Cat cat)
+    {
+        cat.IsLiked = true;
+        cat.IsSuperLiked = true;
+        cat.LikedAt = DateTime.Now;
+
+        // HashSet will handle duplicates automatically based on Cat.Id
+        _likedCats.Add(cat);
 
         await SaveLikedCatsAsync();
     }
