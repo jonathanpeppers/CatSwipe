@@ -106,6 +106,47 @@ The project includes a GitHub Actions workflow (`.github/workflows/build.yml`) t
   - **Pull Requests**: Build in Debug mode (faster CI feedback)
   - **Main branch pushes, release tags**: Build in Release mode (optimized for deployment)
 
+### Screenshot Capture
+
+**Automated Screenshot Capture** for CatSwipe app:
+The project includes automated screenshot capture infrastructure that demonstrates real app functionality.
+
+**Requirements for Screenshot Capture:**
+- Android emulator running (API level 34+, Google APIs, x86_64)
+- Appium server running on port 4723
+- UiAutomator2 driver installed
+- Built and signed APK available
+
+**Screenshot Capture Commands:**
+```bash
+# 1. Setup and start Android emulator
+dotnet android sdk install --package emulator
+dotnet android sdk install --package 'system-images;android-34;google_apis;x86_64'
+dotnet android avd create --name 'UITestsEmulator' --sdk 'system-images;android-34;google_apis;x86_64' --force
+dotnet android avd start --name 'UITestsEmulator' --gpu swiftshader_indirect --no-window --no-snapshot --no-audio --no-boot-anim
+
+# 2. Build Android APK
+dotnet build CatSwipe/CatSwipe.csproj -f net9.0-android --configuration Debug
+
+# 3. Install APK on emulator
+APK_PATH=$(find CatSwipe/bin/Debug/net9.0-android -name "*-Signed.apk" | head -1)
+dotnet android device install --package "$APK_PATH"
+
+# 4. Install and start Appium
+npm install -g appium
+appium driver install uiautomator2
+appium server --port 4723 &
+
+# 5. Run screenshot capture tests
+dotnet test CatSwipe.UITests --filter ScreenshotTests
+```
+
+**Screenshot Outputs:**
+- Screenshots are automatically saved to `docs/images/app-launch.png` and `docs/images/after-swipe-left.png`
+- Resolution: 320x640 (emulator screen size)
+- Format: PNG with RGB color
+- Test artifacts are also saved to `test-artifacts/` directory for debugging
+
 ### Future Development
 
 **Note**: As development progresses, append additional setup instructions, coding patterns, architecture decisions, and development best practices to this document to help future contributors and GitHub Copilot understand the project context better.
