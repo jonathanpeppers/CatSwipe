@@ -120,32 +120,37 @@ The project includes automated screenshot capture infrastructure that demonstrat
 **Screenshot Capture Commands:**
 ```bash
 # 1. Setup and start Android emulator
+dotnet android sdk install --package platform-tools
 dotnet android sdk install --package emulator
 dotnet android sdk install --package 'system-images;android-34;google_apis;x86_64'
 dotnet android avd create --name 'UITestsEmulator' --sdk 'system-images;android-34;google_apis;x86_64' --force
-dotnet android avd start --name 'UITestsEmulator' --gpu swiftshader_indirect --no-window --no-snapshot --no-audio --no-boot-anim
+dotnet android avd start --name 'UITestsEmulator' --gpu swiftshader_indirect --wait-boot --no-window --no-snapshot --no-audio --no-boot-anim
 
 # 2. Build Android APK
 dotnet build CatSwipe/CatSwipe.csproj -f net9.0-android --configuration Debug
 
-# 3. Install APK on emulator
+# 3. Install and launch APK on emulator
 APK_PATH=$(find CatSwipe/bin/Debug/net9.0-android -name "*-Signed.apk" | head -1)
 dotnet android device install --package "$APK_PATH"
+export PATH=$PATH:/usr/local/lib/android/sdk/platform-tools
+adb shell am start -n com.companyname.catswipe/.MainActivity
 
-# 4. Install and start Appium
-npm install -g appium
-appium driver install uiautomator2
-appium server --port 4723 &
+# 4. Capture screenshots using adb
+adb shell screencap -p /sdcard/app-launch.png
+adb pull /sdcard/app-launch.png docs/images/app-launch.png
 
-# 5. Run screenshot capture tests
-dotnet test CatSwipe.UITests --filter ScreenshotTests
+# 5. Perform interaction and capture second screenshot
+adb shell input tap 540 1200  # Tap center of screen
+sleep 2
+adb shell screencap -p /sdcard/after-swipe-left.png
+adb pull /sdcard/after-swipe-left.png docs/images/after-swipe-left.png
 ```
 
 **Screenshot Outputs:**
 - Screenshots are automatically saved to `docs/images/app-launch.png` and `docs/images/after-swipe-left.png`
-- Resolution: 320x640 (emulator screen size)
-- Format: PNG with RGB color
-- Test artifacts are also saved to `test-artifacts/` directory for debugging
+- Resolution: 320x640 (Android emulator screen size)
+- Format: PNG with RGBA color
+- Captured directly from running app using adb screencap
 
 ### Future Development
 
