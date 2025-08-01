@@ -27,7 +27,19 @@ runs:
       docker run -d \
         --name cuttlefish-emulator \
         --privileged \
-        -p 5555:5555 \
+        --tmpfs /tmp \
+        --tmpfs /run \
+        --tmpfs /run/lock \
+        -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+        -v /dev:/dev \
+        -p 6520:6520 \
+        -p 8443:8443 \
+        -p 1080:1080 \
+        --cgroupns=host \
+        --security-opt apparmor:unconfined \
+        --cap-add=SYS_ADMIN \
+        --cap-add=NET_ADMIN \
+        --device-cgroup-rule='c *:* rmw' \
         cuttlefish-orchestration:latest
       
       echo "Container started, waiting for Android to boot..."
@@ -63,7 +75,7 @@ runs:
       
       # Connect to the emulator
       echo "Connecting to Cuttlefish emulator..."
-      adb connect localhost:5555
+      adb connect localhost:6520
       
       # Wait for device to be ready with retry logic
       echo "Waiting for device to be ready..."
@@ -76,9 +88,9 @@ runs:
         echo "Attempt $attempt/$max_attempts: Checking device status..."
         
         # Check if device is online and responsive
-        if adb devices | grep -q "localhost:5555.*device$"; then
+        if adb devices | grep -q "localhost:6520.*device$"; then
           echo "Device is online, testing responsiveness..."
-          if adb -s localhost:5555 shell echo "test" >/dev/null 2>&1; then
+          if adb -s localhost:6520 shell echo "test" >/dev/null 2>&1; then
             echo "Device is responsive!"
             device_ready=true
             break
@@ -95,8 +107,8 @@ runs:
       if [ "$device_ready" = true ]; then
         # Try to get device info to confirm it's working
         echo "=== Device Information ==="
-        adb -s localhost:5555 shell getprop ro.build.version.release || echo "Could not get Android version"
-        adb -s localhost:5555 shell getprop ro.product.model || echo "Could not get device model"
+        adb -s localhost:6520 shell getprop ro.build.version.release || echo "Could not get Android version"
+        adb -s localhost:6520 shell getprop ro.product.model || echo "Could not get device model"
         echo "Cuttlefish Android emulator is ready for use!"
       else
         echo "ERROR: Device failed to become ready within timeout period"
@@ -116,6 +128,12 @@ runs:
         
         echo "Cuttlefish runtime log (if available):"
         docker exec cuttlefish-emulator cat /var/log/cuttlefish/cuttlefish_runtime.log > /tmp/emulator-logs/cuttlefish_runtime.log 2>&1 || echo "Runtime log not available"
+        
+        echo "Container inspection:"
+        docker inspect cuttlefish-emulator > /tmp/emulator-logs/container-inspect.json 2>&1
+        
+        echo "Container environment:"
+        docker exec cuttlefish-emulator env > /tmp/emulator-logs/environment.log 2>&1 || echo "Failed to get environment"
         
         echo "System log (if available):"
         docker exec cuttlefish-emulator dmesg > /tmp/emulator-logs/dmesg.log 2>&1 || echo "System log not available"
