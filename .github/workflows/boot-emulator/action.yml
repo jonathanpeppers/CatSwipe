@@ -17,10 +17,64 @@ runs:
       # Tag with a simpler name for easier use
       docker tag $DOWNLOAD_LOCATION-docker.pkg.dev/android-cuttlefish-artifacts/cuttlefish-orchestration/cuttlefish-orchestration cuttlefish-orchestration:latest
       
-  - name: Verify Docker Image
+  - name: Start Cuttlefish Container
     if: runner.os == 'Linux'
     shell: bash
     run: |
-      echo "=== Docker Image Information ==="
-      docker images cuttlefish-orchestration:latest
-      echo "Cuttlefish Docker image ready for use"
+      echo "=== Starting Cuttlefish Android Emulator ==="
+      
+      # Start the container in background with ADB port mapping
+      docker run -d \
+        --name cuttlefish-emulator \
+        --privileged \
+        -p 5555:5555 \
+        cuttlefish-orchestration:latest
+      
+      echo "Container started, waiting for Android to boot..."
+      
+      # Wait for the container to be ready (up to 5 minutes)
+      timeout=300
+      elapsed=0
+      while [ $elapsed -lt $timeout ]; do
+        if docker exec cuttlefish-emulator test -f /var/log/cuttlefish/cuttlefish_runtime.log 2>/dev/null; then
+          echo "Cuttlefish runtime detected, checking boot status..."
+          break
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+        echo "Waiting for runtime... ($elapsed/$timeout seconds)"
+      done
+      
+      # Give additional time for Android system to boot
+      echo "Waiting for Android system to fully boot..."
+      sleep 60
+      
+  - name: Verify ADB Connection
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      echo "=== Testing ADB Connection ==="
+      
+      # Install ADB if not available
+      if ! command -v adb &> /dev/null; then
+        echo "Installing ADB..."
+        sudo apt-get update && sudo apt-get install -y android-tools-adb
+      fi
+      
+      # Connect to the emulator
+      echo "Connecting to Cuttlefish emulator..."
+      adb connect localhost:5555
+      
+      # Wait a moment for connection to establish
+      sleep 5
+      
+      # List devices to verify connection
+      echo "=== ADB Devices ==="
+      adb devices
+      
+      # Try to get device info to confirm it's working
+      echo "=== Device Information ==="
+      adb -s localhost:5555 shell getprop ro.build.version.release || echo "Could not get Android version"
+      adb -s localhost:5555 shell getprop ro.product.model || echo "Could not get device model"
+      
+      echo "Cuttlefish Android emulator is ready for use!"
