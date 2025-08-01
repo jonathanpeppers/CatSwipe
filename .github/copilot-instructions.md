@@ -191,6 +191,15 @@ See [docs/UITests.md](../docs/UITests.md) for detailed UI testing setup and usag
 4. **Network Management**: Offline mode and better error handling
 5. **Performance**: Image caching and smooth scrolling optimizations
 
+### Development Best Practices
+
+**Documentation and Research Guidelines:**
+- **Always search Microsoft Learn (MS Learn)** when implementing .NET MAUI features, gestures, animations, or any platform-specific functionality - Microsoft Learn provides the most up-to-date and official guidance for .NET MAUI development
+- Reference official documentation before implementing new features to ensure best practices and optimal performance
+
+**Microsoft Learn Integration:**
+- Use the `microsoft_docs_search` tool for direct access to Microsoft Learn documentation during development
+
 ## Useful Resources
 
 - [GitHub Copilot Customization Guide](https://docs.github.com/en/copilot/customizing-copilot/customizing-the-development-environment-for-copilot-coding-agent)

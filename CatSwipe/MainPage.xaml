@@ -85,6 +85,23 @@
                         Clicked="OnLoadMoreCatsClicked" />
             </StackLayout>
         </AbsoluteLayout>
+        
+        <!-- Heart Effect Overlay for Double-Tap -->
+        <ContentView x:Name="HeartEffectOverlay"
+                     Grid.Row="0" Grid.RowSpan="3"
+                     BackgroundColor="Transparent"
+                     IsVisible="False"
+                     InputTransparent="True"
+                     AbsoluteLayout.LayoutBounds="0,0,1,1"
+                     AbsoluteLayout.LayoutFlags="All">
+            <Label x:Name="HeartEffectLabel"
+                   Text="💖"
+                   FontSize="120"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   Opacity="0"
+                   Scale="0.5" />
+        </ContentView>
 
         <!-- Action Buttons -->
         <StackLayout Grid.Row="2" 

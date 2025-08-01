@@ -453,6 +453,75 @@ public class CatServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SuperLikeCatAsync_SetsCatProperties()
+    {
+        // Arrange
+        var cat = new Cat { Id = "cat1", ImageUrl = "https://example.com/cat1.jpg", IsLiked = false, IsSuperLiked = false, LikedAt = null };
+
+        // Act
+        await _catService.SuperLikeCatAsync(cat);
+
+        // Assert
+        Assert.True(cat.IsLiked);
+        Assert.True(cat.IsSuperLiked);
+        Assert.NotNull(cat.LikedAt);
+        Assert.True(cat.LikedAt <= DateTime.Now);
+        Assert.True(cat.LikedAt > DateTime.Now.AddSeconds(-1)); // Should be very recent
+    }
+
+    [Fact]
+    public async Task SuperLikeCatAsync_AddsCatToLikedCollection()
+    {
+        // Arrange
+        var cat = new Cat { Id = "cat1", ImageUrl = "https://example.com/cat1.jpg" };
+
+        // Act
+        await _catService.SuperLikeCatAsync(cat);
+        var likedCats = await _catService.GetLikedCatsAsync();
+
+        // Assert
+        Assert.Single(likedCats);
+        Assert.Equal("cat1", likedCats[0].Id);
+        Assert.True(likedCats[0].IsLiked);
+        Assert.True(likedCats[0].IsSuperLiked);
+    }
+
+    [Fact]
+    public async Task SuperLikeCatAsync_UpgradesRegularLikeTSuperLike()
+    {
+        // Arrange
+        var cat = new Cat { Id = "cat1", ImageUrl = "https://example.com/cat1.jpg" };
+        await _catService.LikeCatAsync(cat); // First like normally
+
+        // Act
+        await _catService.SuperLikeCatAsync(cat); // Then super-like
+
+        var likedCats = await _catService.GetLikedCatsAsync();
+
+        // Assert
+        Assert.Single(likedCats); // Should still be only one cat
+        Assert.True(likedCats[0].IsLiked);
+        Assert.True(likedCats[0].IsSuperLiked); // Should now be super-liked
+    }
+
+    [Fact]
+    public async Task SuperLikeCatAsync_WithSameCatTwice_OnlyAddsOnce()
+    {
+        // Arrange
+        var cat = new Cat { Id = "cat1", ImageUrl = "https://example.com/cat1.jpg" };
+
+        // Act
+        await _catService.SuperLikeCatAsync(cat);
+        await _catService.SuperLikeCatAsync(cat); // Super-like same cat again
+
+        var likedCats = await _catService.GetLikedCatsAsync();
+
+        // Assert
+        Assert.Single(likedCats); // Should still be only one cat (HashSet behavior)
+        Assert.True(likedCats[0].IsSuperLiked);
+    }
+
+    [Fact]
     public async Task FileSystemError_DuringLoad_StartsWithEmptyCollection()
     {
         // Arrange - Use an invalid file path to simulate load error

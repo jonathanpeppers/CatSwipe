@@ -9,6 +9,7 @@ public class Cat
     public string? Breed { get; set; }
     public string? Description { get; set; }
     public bool IsLiked { get; set; }
+    public bool IsSuperLiked { get; set; }
     public DateTime? LikedAt { get; set; }
 
     public override bool Equals(object? obj)
