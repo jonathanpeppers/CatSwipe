@@ -134,17 +134,8 @@ jobs:
     - name: Restore Tools
       run: dotnet tool restore || echo "No tools to restore"
 
-    - name: Enable KVM
-      uses: ./.github/workflows/enable-kvm
-
-    - name: Boot Android emulator
-      run: >
-        dotnet android sdk install --package platform-tools &&
-        dotnet android sdk install --package emulator &&
-        dotnet android sdk install --package '${{ env.TEST_EMULATOR_IMAGE }}' &&
-        dotnet android avd create --name '${{ env.TEST_EMULATOR_NAME }}' --sdk '${{ env.TEST_EMULATOR_IMAGE }}' --force &&
-        dotnet android avd start --name '${{ env.TEST_EMULATOR_NAME }}' --gpu swiftshader_indirect --wait-boot --no-window --no-snapshot --no-audio --no-boot-anim &&
-        dotnet android device list
+    - name: Setup Cuttlefish Android emulator
+      uses: ./.github/workflows/boot-emulator
 
     - name: Install App
       run: |

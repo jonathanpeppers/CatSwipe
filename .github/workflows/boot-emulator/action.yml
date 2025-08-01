@@ -1,0 +1,153 @@
+name: Boot Android Emulator
+
+description: Boots Android emulator using Google Cuttlefish Docker containers
+
+runs:
+  using: composite
+  steps:
+  - name: Pull Cuttlefish Docker Image
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      # Pull from US region (closest to GitHub Actions runners)
+      DOWNLOAD_LOCATION=us
+      echo "Pulling Cuttlefish orchestration image..."
+      docker pull $DOWNLOAD_LOCATION-docker.pkg.dev/android-cuttlefish-artifacts/cuttlefish-orchestration/cuttlefish-orchestration
+      
+      # Tag with a simpler name for easier use
+      docker tag $DOWNLOAD_LOCATION-docker.pkg.dev/android-cuttlefish-artifacts/cuttlefish-orchestration/cuttlefish-orchestration cuttlefish-orchestration:latest
+      
+  - name: Start Cuttlefish Container
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      echo "=== Starting Cuttlefish Android Emulator ==="
+      
+      # Start the container in background with ADB port mapping
+      docker run -d \
+        --name cuttlefish-emulator \
+        --privileged \
+        --tmpfs /tmp \
+        --tmpfs /run \
+        --tmpfs /run/lock \
+        -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+        -v /dev:/dev \
+        -p 6520:6520 \
+        -p 8443:8443 \
+        -p 1080:1080 \
+        --cgroupns=host \
+        --security-opt apparmor:unconfined \
+        --cap-add=SYS_ADMIN \
+        --cap-add=NET_ADMIN \
+        --device-cgroup-rule='c *:* rmw' \
+        cuttlefish-orchestration:latest
+      
+      echo "Container started, waiting for Android to boot..."
+      
+      # Wait for the container to be ready (up to 5 minutes)
+      timeout=300
+      elapsed=0
+      while [ $elapsed -lt $timeout ]; do
+        if docker exec cuttlefish-emulator test -f /var/log/cuttlefish/cuttlefish_runtime.log 2>/dev/null; then
+          echo "Cuttlefish runtime detected, checking boot status..."
+          break
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+        echo "Waiting for runtime... ($elapsed/$timeout seconds)"
+      done
+      
+      # Give additional time for Android system to boot
+      echo "Waiting for Android system to fully boot..."
+      sleep 60
+      
+  - name: Verify ADB Connection
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      echo "=== Testing ADB Connection ==="
+      
+      # Install ADB if not available
+      if ! command -v adb &> /dev/null; then
+        echo "Installing ADB..."
+        sudo apt-get update && sudo apt-get install -y android-tools-adb
+      fi
+      
+      # Connect to the emulator
+      echo "Connecting to Cuttlefish emulator..."
+      adb connect localhost:6520
+      
+      # Wait for device to be ready with retry logic
+      echo "Waiting for device to be ready..."
+      max_attempts=30
+      attempt=0
+      device_ready=false
+      
+      while [ $attempt -lt $max_attempts ]; do
+        attempt=$((attempt + 1))
+        echo "Attempt $attempt/$max_attempts: Checking device status..."
+        
+        # Check if device is online and responsive
+        if adb devices | grep -q "localhost:6520.*device$"; then
+          echo "Device is online, testing responsiveness..."
+          if adb -s localhost:6520 shell echo "test" >/dev/null 2>&1; then
+            echo "Device is responsive!"
+            device_ready=true
+            break
+          fi
+        fi
+        
+        sleep 10
+      done
+      
+      # List devices to verify connection
+      echo "=== ADB Devices ==="
+      adb devices
+      
+      if [ "$device_ready" = true ]; then
+        # Try to get device info to confirm it's working
+        echo "=== Device Information ==="
+        adb -s localhost:6520 shell getprop ro.build.version.release || echo "Could not get Android version"
+        adb -s localhost:6520 shell getprop ro.product.model || echo "Could not get device model"
+        echo "Cuttlefish Android emulator is ready for use!"
+      else
+        echo "ERROR: Device failed to become ready within timeout period"
+        
+        # Collect Docker logs for debugging
+        echo "=== Collecting Docker Logs for Debugging ==="
+        mkdir -p /tmp/emulator-logs
+        
+        echo "Container status:"
+        docker ps -a
+        
+        echo "Container logs:"
+        docker logs cuttlefish-emulator > /tmp/emulator-logs/container.log 2>&1 || echo "Failed to get container logs"
+        
+        echo "Container processes:"
+        docker exec cuttlefish-emulator ps aux > /tmp/emulator-logs/processes.log 2>&1 || echo "Failed to get process list"
+        
+        echo "Cuttlefish runtime log (if available):"
+        docker exec cuttlefish-emulator cat /var/log/cuttlefish/cuttlefish_runtime.log > /tmp/emulator-logs/cuttlefish_runtime.log 2>&1 || echo "Runtime log not available"
+        
+        echo "Container inspection:"
+        docker inspect cuttlefish-emulator > /tmp/emulator-logs/container-inspect.json 2>&1
+        
+        echo "Container environment:"
+        docker exec cuttlefish-emulator env > /tmp/emulator-logs/environment.log 2>&1 || echo "Failed to get environment"
+        
+        echo "System log (if available):"
+        docker exec cuttlefish-emulator dmesg > /tmp/emulator-logs/dmesg.log 2>&1 || echo "System log not available"
+        
+        echo "Docker logs saved to /tmp/emulator-logs/"
+        ls -la /tmp/emulator-logs/
+        
+        exit 1
+      fi
+      
+  - name: Upload Docker Logs on Failure
+    if: failure() && runner.os == 'Linux'
+    uses: actions/upload-artifact@v4
+    with:
+      name: emulator-debug-logs
+      path: /tmp/emulator-logs/
+      retention-days: 7
