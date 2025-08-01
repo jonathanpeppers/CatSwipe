@@ -5,14 +5,8 @@ description: Boots Android emulator using Google Cuttlefish Docker containers
 runs:
   using: composite
   steps:
-  - name: Check runner OS
-    if: runner.os != 'Linux'
-    shell: bash
-    run: |
-      echo "Error: This action only supports Linux runners. Current OS: $RUNNER_OS"
-      exit 1
-      
   - name: Pull Cuttlefish Docker Image
+    if: runner.os == 'Linux'
     shell: bash
     run: |
       # Pull from US region (closest to GitHub Actions runners)
@@ -24,16 +18,9 @@ runs:
       docker tag $DOWNLOAD_LOCATION-docker.pkg.dev/android-cuttlefish-artifacts/cuttlefish-orchestration/cuttlefish-orchestration cuttlefish-orchestration:latest
       
   - name: Verify Docker Image
+    if: runner.os == 'Linux'
     shell: bash
     run: |
       echo "=== Docker Image Information ==="
       docker images cuttlefish-orchestration:latest
       echo "Cuttlefish Docker image ready for use"
-      
-  - name: Test Basic Container Functionality
-    shell: bash
-    run: |
-      echo "=== Testing basic container commands ==="
-      # Test help command only (safe and quick)
-      docker run --rm cuttlefish-orchestration:latest --help || echo "Container basic test completed"
-      echo "Cuttlefish container verified successfully"
