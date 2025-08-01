@@ -1,11 +1,14 @@
 using CatSwipe.Models;
 using CatSwipe.Services;
 
+using Microsoft.Maui.ApplicationModel.DataTransfer;
+
 namespace CatSwipe.Views;
 
 public partial class CollectionPage : ContentPage
 {
     private readonly ICatService _catService;
+    private readonly HttpClient _httpClient;
 
     private List<Cat> _likedCats = [];
     public List<Cat> LikedCats
@@ -18,9 +21,21 @@ public partial class CollectionPage : ContentPage
         }
     }
 
-    public CollectionPage(ICatService catService)
+    private bool _isSharing = false;
+    public bool IsSharing
+    {
+        get => _isSharing;
+        set
+        {
+            _isSharing = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public CollectionPage(ICatService catService, HttpClient httpClient)
     {
         _catService = catService;
+        _httpClient = httpClient;
         InitializeComponent();
         BindingContext = this;
     }
@@ -40,6 +55,66 @@ public partial class CollectionPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Error", $"Failed to load your cat collection: {ex.Message}", "OK");
+        }
+    }
+
+    private async void OnCatTapped(object? sender, EventArgs e)
+    {
+        if (sender is not Border border || border.BindingContext is not Cat cat)
+            return;
+
+        try
+        {
+            await ShareCatAsync(cat);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Unable to share cat: {ex.Message}", "OK");
+        }
+    }
+
+    private async Task ShareCatAsync(Cat cat)
+    {
+        // Create a temporary file in the sharing-root directory for Android FileProvider
+        var sharingDir = Path.Combine(FileSystem.CacheDirectory, "sharing-root");
+        Directory.CreateDirectory(sharingDir);
+        var tempPath = Path.Combine(sharingDir, $"cat_{cat.Id}.jpg");
+
+        try
+        {
+            // Show loading indicator
+            IsSharing = true;
+
+            // Download the cat image
+            using var response = await _httpClient.GetAsync(cat.ImageUrl);
+            response.EnsureSuccessStatusCode();
+
+            // Save image to temporary file
+            using var fileStream = File.Create(tempPath);
+            await response.Content.CopyToAsync(fileStream);
+
+            // Share the image
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = $"Check out this {cat.Breed ?? "adorable cat"}!",
+                File = new ShareFile(tempPath)
+            });
+        }
+        finally
+        {
+            // Hide loading indicator
+            IsSharing = false;
+
+            // Clean up temporary file
+            try
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+            }
+            catch
+            {
+                // Silently ignore cleanup errors
+            }
         }
     }
 }
