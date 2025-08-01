@@ -6,12 +6,11 @@ runs:
   using: composite
   steps:
   - name: Check runner OS
+    if: runner.os != 'Linux'
     shell: bash
     run: |
-      if [ "$RUNNER_OS" != "Linux" ]; then
-        echo "Error: This action only supports Linux runners. Current OS: $RUNNER_OS"
-        exit 1
-      fi
+      echo "Error: This action only supports Linux runners. Current OS: $RUNNER_OS"
+      exit 1
       
   - name: Pull Cuttlefish Docker Image
     shell: bash
