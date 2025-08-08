@@ -9,11 +9,14 @@ runs:
     if: runner.os == 'Linux'
     shell: bash
     run: |
-      # Use sudo only when available
-      if command -v sudo >/dev/null 2>&1; then
+      # Use sudo only when not root; if sudo is missing and not root, fail fast
+      if [ "$(id -u)" -eq 0 ]; then
+        SUDO=""
+      elif command -v sudo >/dev/null 2>&1; then
         SUDO="sudo"
       else
-        SUDO=""
+        echo "sudo not found and not running as root. Please run this action with elevated privileges." >&2
+        exit 1
       fi
 
       echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | $SUDO tee /etc/udev/rules.d/99-kvm4all.rules
