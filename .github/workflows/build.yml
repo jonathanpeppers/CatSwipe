@@ -109,6 +109,8 @@ jobs:
 
   ui-tests:
     runs-on: ubuntu-22.04
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:9.0
     needs: [build]
     env:
       TEST_EMULATOR_IMAGE: system-images;android-34;google_apis;x86_64
@@ -116,11 +118,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
